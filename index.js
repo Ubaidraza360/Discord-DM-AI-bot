@@ -1,6 +1,6 @@
 async function askGemini(prompt) {
   const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDbIsBkS9mGJW5QcFoag8vFAudV7ShMF18`;
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyA3rO5G3Pka633oVfPLgPt3RUzSX7lfNEY`;
 
   const body = {
     contents: [
