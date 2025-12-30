@@ -1,51 +1,55 @@
-import 'dotenv/config';
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
-import fetch from 'node-fetch';
+async function askGemini(prompt) {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDbIsBkS9mGJW5QcFoag8vFAudV7ShMF18`;
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.MessageContent
-  ],
-  partials: [Partials.Channel]
-});
+  const body = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }],
+      },
+    ],
+  };
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
-
-async function askGemini(text) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$AIzaSyDbIsBkS9mGJW5QcFoag8vFAudV7ShMF18`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text }] }]
-      })
-    }
-  );
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Kuch ghalat ho gaya 😅";
+
+  // ✅ DEBUG (Railway logs me actual response dekho)
+  console.log("Gemini status:", res.status);
+  console.log("Gemini response:", JSON.stringify(data));
+
+  // ✅ If error comes from Gemini
+  if (!res.ok) {
+    return `Gemini error (${res.status}): ${data?.error?.message || "Unknown error"}`;
+  }
+
+  // ✅ Extract text safely
+  const text =
+    data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("\n");
+
+  return text || "Theek hai. Aap ka sawal bata dein.";
 }
+
 
 client.on('ready', () => {
   console.log(`🤖 Bot logged in as ${client.user.tag}`);
 });
 
-client.on('messageCreate', async (msg) => {
-  if (msg.author.bot) return;
-  if (msg.guild) return;
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
 
-  try {
-    await msg.channel.sendTyping();
-    const reply = await askGemini(msg.content);
-    await msg.reply(reply.slice(0, 1900));
-  } catch (err) {
-    console.error(err);
-    msg.reply("Error aa gaya bhai 😅");
-  }
+  // ✅ DM only
+  if (message.guild) return;
+
+  const userText = message.content?.trim() || "";
+  if (!userText) return;
+
+  const reply = await askGemini(userText);
+  await message.reply(reply);
 });
 
-client.login(DISCORD_TOKEN);
